@@ -31,6 +31,7 @@ react-tailwind-template/
 │   │   ├── Button.jsx
 │   │   └── Card.jsx
 │   ├── pages/                # Page components (ready to add)
+│   ├── layouts/              # Layout components (ready to add)
 │   ├── hooks/                # Custom React hooks
 │   │   └── useAuth.js
 │   ├── services/             # API & external services
@@ -43,12 +44,14 @@ react-tailwind-template/
 │   │   ├── index.css
 │   │   └── App.css
 │   ├── assets/               # Images, fonts, etc.
+│   ├── routes.jsx            # Router configuration
 │   ├── App.jsx
 │   └── main.jsx
 ├── public/                   # Static files
 ├── vite.config.js            # Vite configuration
 ├── tailwind.config.js        # Tailwind configuration
 ├── package.json
+├── ROUTES_GUIDE.md           # Routing documentation
 └── README.md
 ```
 
@@ -148,6 +151,11 @@ npm run dev
 - **Button.jsx** - Reusable button component
 - **Card.jsx** - Reusable card component
 
+### ✅ Routing
+- **routes.jsx** - React Router v6 configuration
+- **ROUTES_GUIDE.md** - Complete routing documentation
+- Ready for page components and nested routes
+
 ### ✅ Utilities Included
 - **validation.js** - Email, password, username validation
 - **formatting.js** - Date, time, text formatting
@@ -162,6 +170,7 @@ npm run dev
 import Button from '@/components/Button'
 import { formatDate } from '@/utils/formatting'
 import api from '@/services/api'
+import router from '@/routes'
 ```
 
 ---
@@ -179,6 +188,42 @@ npm run preview      # Preview production build locally
 # Code Quality
 npm run lint         # Run ESLint (if configured)
 ```
+
+---
+
+## 🛣️ Routing Setup
+
+This template includes **React Router v6** pre-configured!
+
+### Quick Start
+```javascript
+// In App.jsx
+import { RouterProvider } from 'react-router-dom'
+import router from '@/routes'
+
+export default function App() {
+  return <RouterProvider router={router} />
+}
+```
+
+### Define Routes
+Edit `src/routes.jsx` to add your routes:
+```javascript
+const routes = [
+  {
+    path: '/',
+    element: <Layout />,
+    children: [
+      {
+        index: true,
+        element: <Home />
+      }
+    ]
+  }
+]
+```
+
+See **ROUTES_GUIDE.md** for complete routing documentation! 📖
 
 ---
 
