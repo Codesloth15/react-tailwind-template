@@ -1,17 +1,9 @@
-import React from 'react';
-import ChatBox from './ChatBox';
-import Header from './Header';
+import React, { useState, useRef, useEffect } from "react";
 import { Paperclip, Send, Edit2, Check, X, MessageSquare } from "lucide-react";
-import { useState, useRef,useEffect} from 'react';
-export default function ChatView({
-  title = 'Design Crew',
-  status = 'Online',
-  isOnline = true
-}) {
-  const initials = title
-    ? title.split(' ').map(n => n[0]).join('').toUpperCase()
-    : 'DC';
- const [messages, setMessages] = useState([
+
+export default function ChatBox() {
+  // 1. STATE MANAGEMENT
+  const [messages, setMessages] = useState([
     { id: 1, text: "Welcome to the project chat!", sender: "bot", time: "10:00 AM" },
     { id: 2, text: "You can send messages and attach files here.", sender: "bot", time: "10:01 AM" },
   ]);
@@ -67,25 +59,23 @@ export default function ChatView({
     setEditingId(null);
     setEditText("");
   };
+
   return (
-    <div className="
-      w-full
-      h-full
-      flex flex-col                  {/* 1. Stack children vertically */}
-                 {/* 2. Push elements apart if needed */}
-      bg-white/80 backdrop-blur-md
-      text-primary font-sans select-none
-      transition-all duration-300
-    ">
+    <div className="flex flex-col w-full max-w-2xl h-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200 mx-auto">
+      
+      {/* HEADER */}
+      <div className="bg-[#FF9B51] p-4 text-white font-bold flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-2">
+          <MessageSquare size={20} />
+          <h2 className="tracking-wide">Project Discussion</h2>
+        </div>
+        <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Active Now</span>
+      </div>
 
-      <Header />
-
-      {/* ChatBox fills up all available remaining middle space */}
-      <div className="flex-1 h-full w-full overflow-y-auto">
-    
-  <div 
+      {/* MESSAGES VIEWPORT */}
+      <div 
         ref={scrollRef}
-        className="flex-1 p-4  h-full overflow-y-auto bg-gray-50 space-y-4 scroll-smooth"
+        className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-4 scroll-smooth"
       >
         {messages.map((msg) => (
           <div 
@@ -136,9 +126,20 @@ export default function ChatView({
         ))}
       </div>
 
-     
-      </div>
-           <form onSubmit={handleSendMessage} className="p-4  bg-white border-t border-gray-100 flex items-center gap-3">
+      {/* FILE PREVIEW BAR */}
+      {selectedFile && (
+        <div className="px-4 py-2 bg-orange-50 border-t border-orange-100 flex items-center justify-between text-xs animate-slide-up">
+          <span className="flex items-center gap-2 text-orange-700 italic">
+            <Paperclip size={14} /> Attachment: {selectedFile.name}
+          </span>
+          <button onClick={() => setSelectedFile(null)} className="text-gray-400 hover:text-red-500">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* INPUT FORM */}
+      <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-gray-100 flex items-center gap-3">
         <input 
           type="file" 
           ref={fileInputRef} 
@@ -171,6 +172,7 @@ export default function ChatView({
           <Send size={20} />
         </button>
       </form>
+
     </div>
   );
 }

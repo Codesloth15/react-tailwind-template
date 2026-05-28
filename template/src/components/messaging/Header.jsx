@@ -11,21 +11,16 @@ export default function Header({
     : 'DC';
 
   return (
-    <div className="
-      fixed bottom-3 left-1/2 -translate-x-1/2
-      w-[96%] max-w-3xl
-      flex items-center justify-between
-      px-4 py-3
-      rounded-2xl
+    <div className="    
+      flex items-center justify-between 
       text-primary
       font-sans select-none
       transition-all duration-300
-
+    px-4 py-4
       bg-white/70 backdrop-blur-xl
-      shadow-[0_10px_30px_rgba(0,0,0,0.12)]
-      hover:shadow-[0_15px_40px_rgba(0,0,0,0.18)]
+      shadow-[0_4px_20px_rgba(0,0,0,0.05)] {/* Lightened shadow since it is no longer an island card */}
 
-      border-0
+      border-b border-black/[0.06]   {/* Added a crisp bottom border separator */}
       z-50
     ">
 
