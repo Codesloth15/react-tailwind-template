@@ -55,20 +55,29 @@ export const fetchById = async (tableName, id) => {
 /**
  * Insert a new record
  */
-export const insertData = async (tableName, record) => {
+export const insertData = async (
+  tableName,
+  record
+) => {
   try {
     const { data, error } = await supabase
       .from(tableName)
       .insert([record])
-      .select()
+      .select();
 
-    if (error) throw error
+    if (error) throw error;
 
-    return { data, error: null }
+    return {
+      data,
+      error: null,
+    };
   } catch (error) {
-    return { data: null, error: error.message }
+    return {
+      data: null,
+      error: error.message,
+    };
   }
-}
+};
 
 /**
  * Update a record
@@ -138,3 +147,19 @@ export const subscribeToTable = (tableName, callback) => {
 
   return subscription
 }
+
+
+export const fetchMessages = async (conversationId) => {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Fetch messages error:", error);
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+};

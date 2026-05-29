@@ -1,154 +1,179 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { HiHome, HiChatBubbleLeft, HiCog, HiUser, HiChevronLeft, HiChevronRight, HiArrowRightOnRectangle } from "react-icons/hi2";
+
+import {
+  FiHome,
+  FiMessageCircle,
+  FiSettings,
+  FiUser,
+  FiChevronLeft,
+  FiChevronRight,
+  FiLogOut
+} from "react-icons/fi";
 
 export default function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(false);
-  const location = useLocation();
+  const { pathname } = useLocation();
 
-  // Navigation items with icons
-  const navItems = [
-    { icon: HiHome, label: "Home", path: "/" },
-    { icon: HiChatBubbleLeft, label: "Messages", path: "/messages" },
-    { icon: HiCog, label: "Settings", path: "/settings" },
-    { icon: HiUser, label: "Profile", path: "/profile" },
-  ];
+  const navItems = useMemo(
+    () => [
+      { icon: FiHome, label: "Home", path: "/" },
+      { icon: FiMessageCircle, label: "Messages", path: "/messages" },
+      { icon: FiSettings, label: "Settings", path: "/settings" },
+      { icon: FiUser, label: "Profile", path: "/profile" },
+    ],
+    []
+  );
 
-  const isActive = (path) => location.pathname === path;
-
-  // Publish a CSS variable for the sidebar width so other content can adapt.
   useEffect(() => {
-    const applyVar = () => {
-      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
-      const width = isDesktop ? (isExpanded ? '16rem' : '5rem') : '0px';
-      document.documentElement.style.setProperty('--sidebar-width', width);
+    const updateSidebarWidth = () => {
+      const isDesktop = window.innerWidth >= 768;
+
+      document.documentElement.style.setProperty(
+        "--sidebar-width",
+        isDesktop
+          ? (isExpanded ? "16rem" : "5rem")
+          : "0px"
+      );
     };
 
-    applyVar();
+    updateSidebarWidth();
 
-    const mql = window.matchMedia('(min-width: 768px)');
-    const onChange = () => applyVar();
-    if (mql.addEventListener) mql.addEventListener('change', onChange);
-    else mql.addListener(onChange);
-    window.addEventListener('resize', onChange);
+    window.addEventListener("resize", updateSidebarWidth);
 
     return () => {
-      if (mql.removeEventListener) mql.removeEventListener('change', onChange);
-      else mql.removeListener(onChange);
-      window.removeEventListener('resize', onChange);
+      window.removeEventListener("resize", updateSidebarWidth);
     };
   }, [isExpanded]);
 
+  const navClass = (active) => `
+    flex items-center
+    ${isExpanded
+      ? "gap-4 px-4 py-3"
+      : "justify-center py-3"}
+    rounded-xl
+    transition-all duration-200
+    ${active
+      ? "bg-black/5 text-black font-medium"
+      : "text-gray-500 hover:bg-black/[0.04] hover:text-black"}
+  `;
+
   return (
     <>
-      {/* Desktop & Tablet Sidebar */}
-      <div className={`
-        hidden md:flex flex-col h-screen
-        bg-white/70 backdrop-blur-xl
-        shadow-[2px_0_20px_rgba(0,0,0,0.06)]
-        transition-all duration-300 ease-out
-        ${isExpanded ? "w-64" : "w-20"}
-        shrink-0 fixed left-0 top-0 z-40
-      `}>
-        {/* Sidebar Header */}
+      <aside
+        className={`
+          hidden md:flex flex-col
+          fixed top-0 left-0 z-40
+          h-screen shrink-0
+          bg-white/70 backdrop-blur-xl
+          border-r border-black/[0.06]
+          shadow-sm
+          transition-all duration-300
+          ${isExpanded ? "w-64" : "w-20"}
+        `}
+      >
         <div className="
-          px-4 py-4 flex items-center justify-between
-          bg-white/60 backdrop-blur-md border-b
-          border-primary/10
+          flex items-center justify-between
+          px-4 py-4
+          border-b border-black/[0.06]
         ">
           {isExpanded && (
-            <h2 className="text-xl font-bold text-primary">Nav</h2>
+            <h2 className="text-lg font-semibold">
+              Nav
+            </h2>
           )}
+
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={() => setIsExpanded((prev) => !prev)}
             className="
-              p-2 rounded-lg hover:bg-black/5
-              active:scale-95 transition
               ml-auto
+              p-2
+              rounded-xl
+              hover:bg-black/[0.05]
+              transition
             "
-            title={isExpanded ? "Collapse" : "Expand"}
           >
-            {isExpanded ? <HiChevronLeft size={20} /> : <HiChevronRight size={20} />}
+            {isExpanded
+              ? <FiChevronLeft size={18} />
+              : <FiChevronRight size={18} />
+            }
           </button>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-2">
-          {navItems.map((item) => {
-            const IconComponent = item.icon;
-            const base = isExpanded
-              ? 'flex items-center gap-4 px-4 py-3 rounded-lg'
-              : 'flex items-center justify-center w-full py-3 rounded-lg';
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`
-                  ${base}
-                  transition-all duration-200
-                  ${isActive(item.path) ? 'bg-primary/10 text-primary font-semibold' : 'text-secondary hover:bg-black/5'}
-                `}
-                title={!isExpanded ? item.label : ''}
-              >
-                <IconComponent size={24} className="shrink-0" />
-                {isExpanded && <span>{item.label}</span>}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
+          {navItems.map(({ icon: Icon, label, path }) => (
+            <Link
+              key={path}
+              to={path}
+              title={!isExpanded ? label : ""}
+              className={navClass(pathname === path)}
+            >
+              <Icon size={22} className="shrink-0" />
+
+              {isExpanded && (
+                <span className="truncate">
+                  {label}
+                </span>
+              )}
+            </Link>
+          ))}
         </nav>
 
-        {/* Footer */}
-        <div className="
-          p-4 border-t border-primary/10
-          bg-white/40
-        ">
-          <button className="
-            w-full px-4 py-2 rounded-lg
-            bg-primary/10 text-primary
-            hover:bg-primary/20 transition
-            text-sm font-medium
-            flex items-center justify-center gap-2
-          ">
-            {isExpanded ? (
-              <>
-                <HiArrowRightOnRectangle size={18} />
-                <span>Logout</span>
-              </>
-            ) : (
-              <HiArrowRightOnRectangle size={20} />
+        <div className="p-4 border-t border-black/[0.06]">
+          <button
+            className="
+              w-full
+              flex items-center justify-center gap-2
+              px-4 py-3
+              rounded-xl
+              bg-black/[0.04]
+              hover:bg-black/[0.07]
+              transition
+            "
+          >
+            <FiLogOut size={18} />
+
+            {isExpanded && (
+              <span className="text-sm font-medium">
+                Logout
+              </span>
             )}
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="
-        md:hidden fixed bottom-0 left-0 right-0
-        bg-white/70 backdrop-blur-xl
-        border-t border-primary/10
-        shadow-[0_-2px_20px_rgba(0,0,0,0.06)]
-        z-40
-      ">
+      <div
+        className="
+          md:hidden
+          fixed bottom-0 left-0 right-0 z-40
+          bg-white/70 backdrop-blur-xl
+          border-t border-black/[0.06]
+          shadow-sm
+        "
+      >
         <nav className="flex items-center justify-around py-2">
-          {navItems.map((item) => {
-            const IconComponent = item.icon;
+          {navItems.map(({ icon: Icon, label, path }) => {
+            const active = pathname === path;
+
             return (
               <Link
-                key={item.path}
-                to={item.path}
+                key={path}
+                to={path}
+                title={label}
                 className={`
-                  flex flex-col items-center gap-1 p-3
-                  transition-all duration-200
-                  ${
-                    isActive(item.path)
-                      ? "text-primary"
-                      : "text-secondary hover:text-primary/70"
-                  }
+                  flex flex-col items-center gap-1
+                  p-3 rounded-xl
+                  transition
+                  ${active
+                    ? "text-black"
+                    : "text-gray-500 hover:text-black"}
                 `}
-                title={item.label}
               >
-                <IconComponent size={24} />
-                <span className="text-xs font-medium">{item.label}</span>
+                <Icon size={22} />
+
+                <span className="text-[11px] font-medium">
+                  {label}
+                </span>
               </Link>
             );
           })}

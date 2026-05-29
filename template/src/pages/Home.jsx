@@ -1,10 +1,92 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ChatView from "./../components/messaging/ChatView";
 import Sidebar from "./../components/sidebar/Sidebar";
 import RightPanel from "./../components/RightPanel";
+import { supabase } from "./../services/supabase"; // Ensure this import matches your project structure
 
 export default function Home() {
   const [currentView, setCurrentView] = useState("list");
+  const [conversations, setConversations] = useState([]);
+  const [selectedConversationId, setSelectedConversationId] = useState(
+    "11111111-1111-1111-1111-111111111111" // Defaults to your original ID
+  );
+  const [loading, setLoading] = useState(true);
+
+  // Current logged-in user identifier
+  const currentUserId = "eca87d57-670b-433c-9b0f-46c85388fd7d";
+
+  // -------------------------------------------------------------
+  // FETCH ACTIVE CONVERSATIONS & LATEST MESSAGES
+  // -------------------------------------------------------------
+  const fetchConversationsList = async () => {
+    try {
+      setLoading(true);
+      
+      // Step 1: Fetch distinct conversation IDs that contain messages
+      const { data: rawMessages, error: msgError } = await supabase
+        .from("messages")
+        .select("conversation_id, text, created_at, sender_id")
+        .order("created_at", { ascending: false });
+
+      if (msgError) throw msgError;
+
+      // Step 2: Group records to extract only the single newest message per chat channel
+      const uniqueChatMap = {};
+      rawMessages.forEach((msg) => {
+        if (!uniqueChatMap[msg.conversation_id]) {
+          uniqueChatMap[msg.conversation_id] = {
+            id: msg.conversation_id,
+            // Fallback display logic for naming groups / people
+            name: msg.conversation_id === "11111111-1111-1111-1111-111111111111" 
+              ? "Design Crew" 
+              : `Chat Room (${msg.conversation_id.slice(0, 4)})`,
+            initials: msg.conversation_id === "11111111-1111-1111-1111-111111111111" ? "DC" : "CR",
+            lastMessage: msg.text || "📷 Sent an attachment",
+            senderId: msg.sender_id,
+            time: new Date(msg.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            rawDate: new Date(msg.created_at)
+          };
+        }
+      });
+
+      // Convert mapping dictionary back into an ordered list array
+      const sortedConversations = Object.values(uniqueChatMap).sort(
+        (a, b) => b.rawDate - a.rawDate
+      );
+
+      setConversations(sortedConversations);
+    } catch (err) {
+      console.error("Error loading chat conversations list:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchConversationsList();
+
+    // -------------------------------------------------------------
+    // REALTIME PIPELINE: Refresh list metadata when any message updates
+    // -------------------------------------------------------------
+    const chatListSubscription = supabase
+      .channel("public-chat-list-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "messages" },
+        () => {
+          // Re-fetch profiles and message configurations dynamically upon change events
+          fetchConversationsList();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(chatListSubscription);
+    };
+  }, []);
 
   return (
     <div className="h-screen w-full bg-background text-primary overflow-hidden font-sans">
@@ -12,9 +94,13 @@ export default function Home() {
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="h-screen flex flex-col md:pt-0 pb-20 md:pb-0" style={{ marginLeft: 'var(--sidebar-width)', transition: 'margin-left 200ms ease' }}>
+      <div 
+        className="h-screen flex flex-col md:pt-0 pb-20 md:pb-0" 
+        style={{ marginLeft: 'var(--sidebar-width)', transition: 'margin-left 200ms ease' }}
+      >
         <div className="flex flex-1 overflow-hidden">
-          {/* LEFT SIDEBAR (CHAT LIST) */}
+          
+          {/* LEFT SIDEBAR (DYNAMIC CHAT LIST) */}
           <div
             className={`
               ${currentView === "list" ? "flex" : "hidden"}
@@ -25,45 +111,64 @@ export default function Home() {
             `}
           >
             {/* Sidebar Header */}
-            <div className="px-4 py-3 flex items-center justify-between bg-white/60 backdrop-blur-md">
-              <h1 className="text-lg font-bold">Messages</h1>
+            <div className="px-4 py-3 flex items-center justify-between bg-white/60 backdrop-blur-md border-b border-gray-100">
+              <h1 className="text-lg font-bold text-gray-800">Messages</h1>
               <button className="p-2 rounded-xl hover:bg-black/5 active:scale-95 transition">
                 ✏️
               </button>
             </div>
 
-            {/* Chat List */}
+            {/* Chat List Stream */}
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {/* ACTIVE CHAT */}
-              <div
-                onClick={() => setCurrentView("chat")}
-                className="flex items-center gap-3 p-3 cursor-pointer bg-gradient-to-r from-orange-400/90 to-orange-500/80 text-white hover:scale-[1.01] transition-all duration-200 shadow-sm"
-              >
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-semibold text-sm">
-                  DC
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline">
-                    <span className="font-semibold text-sm truncate">Design Crew</span>
-                    <span className="text-[11px] opacity-80">10:35 AM</span>
-                  </div>
-                  <p className="text-xs opacity-80 truncate mt-0.5">Sarah: Let's make sure the assets...</p>
-                </div>
-              </div>
+              {loading && conversations.length === 0 ? (
+                <div className="p-4 text-center text-sm text-gray-400">Loading your chats...</div>
+              ) : conversations.length === 0 ? (
+                <div className="p-4 text-center text-sm text-gray-400">No active chats found.</div>
+              ) : (
+                conversations.map((chat) => {
+                  const isSelected = selectedConversationId === chat.id;
+                  const isMe = chat.senderId === currentUserId;
 
-              {/* NORMAL CHAT */}
-              <div className="flex items-center gap-3 p-3 hover:bg-black/5 cursor-pointer transition">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-orange-600 flex items-center justify-center text-white font-semibold text-sm">
-                  M
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline">
-                    <span className="font-semibold text-sm truncate">Marketing Ops</span>
-                    <span className="text-[11px] text-secondary">Yesterday</span>
-                  </div>
-                  <p className="text-xs text-secondary truncate mt-0.5">You: Sent a link</p>
-                </div>
-              </div>
+                  return (
+                    <div
+                      key={chat.id}
+                      onClick={() => {
+                        setSelectedConversationId(chat.id);
+                        setCurrentView("chat");
+                      }}
+                      className={`flex items-center gap-3 p-3 cursor-pointer rounded-xl transition-all duration-200 ${
+                        isSelected
+                          ? "bg-gradient-to-r from-orange-400/90 to-orange-500/80 text-white shadow-sm"
+                          : "hover:bg-gray-100/80 text-gray-700 bg-transparent"
+                      }`}
+                    >
+                      {/* Avatar container */}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 ${
+                        isSelected 
+                          ? "bg-white/20 text-white" 
+                          : "bg-gradient-to-br from-orange-100 to-orange-200 text-orange-600"
+                      }`}>
+                        {chat.initials}
+                      </div>
+
+                      {/* Message metadata layout */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-baseline">
+                          <span className={`font-semibold text-sm truncate ${isSelected ? "text-white" : "text-gray-900"}`}>
+                            {chat.name}
+                          </span>
+                          <span className={`text-[10px] shrink-0 ml-2 ${isSelected ? "text-white/80" : "text-gray-400"}`}>
+                            {chat.time}
+                          </span>
+                        </div>
+                        <p className={`text-xs truncate mt-0.5 ${isSelected ? "text-white/80" : "text-gray-500"}`}>
+                          {isMe ? "You: " : ""}{chat.lastMessage}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -76,7 +181,12 @@ export default function Home() {
             `}
           >
             <div className="flex-1 h-full">
-              <ChatView onBack={() => setCurrentView("list")} />
+              {/* IMPORTANT: Added conversationId prop here to load the selected chat dynamically */}
+              <ChatView 
+                key={selectedConversationId} // Re-mounts ChatView instantly when switching conversations
+                conversationId={selectedConversationId} 
+                onBack={() => setCurrentView("list")} 
+              />
             </div>
           </div>
 

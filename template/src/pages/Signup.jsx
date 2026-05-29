@@ -4,7 +4,7 @@ import katalkLogo from '@/assets/bg-katalk.png'
 import { signUp } from '@/services/authService.js'
 
 export default function Signup() {
-  const [name, setName] = useState('')
+  const [username, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -21,7 +21,7 @@ export default function Signup() {
     setLoading(true)
 
     // validation
-    if (!name || !email || !password || !confirmPassword) {
+    if (!username || !email || !password || !confirmPassword) {
       setError('Please fill in all fields')
       setLoading(false)
       return
@@ -35,7 +35,7 @@ export default function Signup() {
 
     try {
       const { data, error } = await signUp(email, password, {
-        full_name: name
+        username: username
       })
 
       if (error) {
@@ -94,7 +94,7 @@ export default function Signup() {
                 </label>
                 <input
                   type="text"
-                  value={name}
+                  value={username}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-orange-400"

@@ -8,18 +8,35 @@ export const signUp = async (email, password, userData = {}) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: userData
-      }
-    })
+    });
 
-    if (error) throw error
+    if (error) throw error;
 
-    return { data, error: null }
+    const user = data.user;
+
+    if (!user) {
+      return {
+        data,
+        error: "User not returned (email confirmation may be enabled)",
+      };
+    }
+
+    const { error: profileError } = await supabase.from("profiles").insert([
+      {
+        id: user.id,
+        username: userData.username,
+        email: email,
+        avatar_url: null,
+      },
+    ]);
+
+    if (profileError) throw profileError;
+
+    return { data, error: null };
   } catch (error) {
-    return { data: null, error: error.message }
+    return { data: null, error: error.message };
   }
-}
+};
 
 /**
  * Sign in with email and password
